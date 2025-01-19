@@ -2,7 +2,6 @@ package numberArray;
 
 import exceptions.InvalidInputException;
 
-import java.util.Scanner;
 
 /**
  * Initializes the array management system and handles user interactions.
@@ -13,15 +12,15 @@ public class ArrayManagerService {
     public static final int MIN_RANDOM_ARRAY_LENGTH = 2;
     public static final int MAX_RANDOM_ARRAY_LENGTH = 20;
 
-    private final Scanner scanner;
+    private final UserInteractionService userInteractionService;
+
 
     /**
-     * Constructs an ArrayManagerService with a new Scanner instance.
+     * Constructs an ArrayManagerService with a new UserInteractionService instance.
      */
     public ArrayManagerService() {
-        scanner = new Scanner(System.in);
+        userInteractionService = new UserInteractionService();
     }
-
 
     /**
      * Initializes the array based on user input.
@@ -33,35 +32,22 @@ public class ArrayManagerService {
     public int[] initArray() throws InvalidInputException {
 
         while (true) {
-            int choice = getUserChoice("Choose an option: \n1. Create array manually \n2. Generate random array \nChoose a number: ");
-            switch (choice) {
-                case 1:
-                    return createArrayManually();
-                case 2:
-                    return NumberArray.generateRandomArray(MIN_RANDOM_ARRAY_LENGTH, MAX_RANDOM_ARRAY_LENGTH);
-                default:
-                    System.out.println("Invalid choice, please try again.");
-            }
+            int choice = userInteractionService.getUserChoice("""
+                    Choose an option:
+                    1. Create array manually
+                    2. Generate random array
+                    Enter your choice:""");
+            return switch (choice) {
+                case 1 -> createArrayManually();
+                case 2 -> NumberArray.generateRandomArray(MIN_RANDOM_ARRAY_LENGTH, MAX_RANDOM_ARRAY_LENGTH);
+                default -> {
+                    userInteractionService.printlnMessage("Invalid choice. Please try again.");
+                    yield null;
+                }
+            };
         }
     }
 
-
-    /**
-     * Prompts the user for a choice and returns the input as an integer.
-     *
-     * @param prompt the prompt message to display to the user
-     * @return the user's choice as an integer
-     */
-    public int getUserChoice(String prompt) {
-        System.out.print(prompt);
-        while (!scanner.hasNextInt()) {
-            System.out.println("Invalid input. Please enter a number.");
-            scanner.next();
-        }
-        int choice = scanner.nextInt();
-        scanner.nextLine();
-        return choice;
-    }
 
     /**
      * Prompts the user to enter numbers separated by commas and creates an array from the input.
@@ -70,12 +56,12 @@ public class ArrayManagerService {
      */
     private int[] createArrayManually() {
         while (true) {
-            System.out.print("Enter numbers separated by commas (e.g., 1, 2, 3): ");
-            String input = scanner.nextLine();
+            userInteractionService.printlnMessage("Enter numbers separated by commas (e.g., 1, 2, 3): ");
+            String input = userInteractionService.readLine();
             try {
                 return NumberArray.createArrayManually(input);
             } catch (InvalidInputException e) {
-                System.out.println(e.getMessage());
+                userInteractionService.printlnMessage(e.getMessage());
             }
         }
     }
@@ -98,19 +84,10 @@ public class ArrayManagerService {
      * @return a new array with the added number
      */
     public int[] addNumberToArray(int[] array) {
-        while (true) {
-            System.out.print("Enter a number to add: ");
-            if (scanner.hasNextInt()) {
-                int number = scanner.nextInt();
-                scanner.nextLine();
-                int[] newArray = NumberArray.addNumber(array, number);
-                System.out.println("Number was added to the array.");
-                return newArray;
-            } else {
-                System.out.println("Invalid input. Please enter a valid integer number.");
-                scanner.next();
-            }
-        }
+        userInteractionService.printlnMessage("Enter a number to add: ");
+        int[] newArray = NumberArray.addNumber(array, userInteractionService.readInt());
+        userInteractionService.printlnMessage("Number was added to the array.");
+        return newArray;
     }
 
     /**
@@ -134,6 +111,7 @@ public class ArrayManagerService {
         return NumberArray.findMin(array);
     }
 
+
     /**
      * Prompts the user to enter a number and removes it from the array.
      * The user can choose to remove all occurrences of the number or just the first occurrence.
@@ -142,23 +120,28 @@ public class ArrayManagerService {
      * @return a new array with the number removed
      */
     public int[] removeNumberFromArray(int[] array) {
-        System.out.print("Enter a number to remove: ");
-        while (!scanner.hasNextInt()) {
-            System.out.println("Invalid input. Please enter a valid integer number.");
-            scanner.next();
-        }
-        int number = scanner.nextInt();
-        scanner.nextLine();
+        userInteractionService.printlnMessage("Enter a number to remove: ");
+        int number = userInteractionService.readInt();
 
-        System.out.print("Remove all occurrences? (yes/no): ");
-        String response = scanner.nextLine().trim().toLowerCase();
-        while (!response.equals("yes") && !response.equals("no")) {
-            System.out.println("Invalid choice. Please enter 'yes' or 'no'.");
-            response = scanner.nextLine().trim().toLowerCase();
+        boolean numberExists = NumberArray.containsNumber(array, number);
+
+        if (!numberExists) {
+            userInteractionService.printlnMessage("Number " + number + " does not exist in the array.");
+            return array;
         }
 
-        boolean removeAll = response.equals("yes");
-        return NumberArray.removeNumber(array, number, removeAll);
+        while (true) {
+                userInteractionService.printlnMessage("Remove all occurrences? (yes/no): ");
+                String input = userInteractionService.readLine().toLowerCase();
+                if (input.equals("yes") || input.equals("no")) {
+                    boolean removeAll = input.equals("yes");
+                    int[] newArray = NumberArray.removeNumber(array, number, removeAll);
+                    userInteractionService.printlnMessage("Number " + number + " was removed from the array.");
+                    return newArray;
+                } else {
+                    userInteractionService.printlnMessage("Invalid choice. Please enter 'yes' or 'no'.");
+                }
+        }
     }
 
     /**
@@ -170,13 +153,4 @@ public class ArrayManagerService {
         return NumberArray.clearArray();
     }
 
-
-    /**
-     * Returns the Scanner instance used for user input.
-     *
-     * @return the Scanner instance
-     */
-    public Scanner getScanner() {
-        return scanner;
-    }
 }

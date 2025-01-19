@@ -40,18 +40,19 @@ public class NumberArray {
      * @throws InvalidInputException if the input is null, empty, or contains invalid numbers
      */
     public static int[] createArrayManually(String input) throws InvalidInputException {
-        if (input == null || input.isEmpty()) {
+        if (input == null || input.isBlank()) {
             throw new InvalidInputException("Input cannot be null or empty.");
         }
 
-        String[] stringNumbers = input.split(",\\s*");
+        String[] stringNumbers = input.split(",");
 
         int[] numbers = new int[stringNumbers.length];
         for (int i = 0; i < stringNumbers.length; i++) {
+            String trimmedPart = stringNumbers[i].trim();
             try {
-                numbers[i] = Integer.parseInt(stringNumbers[i]);
+                numbers[i] = Integer.parseInt(trimmedPart);
             } catch (NumberFormatException e) {
-                throw new InvalidInputException("Invalid number: " + stringNumbers[i]);
+                throw new InvalidInputException("Invalid number: " + trimmedPart);
             }
         }
 
@@ -153,5 +154,9 @@ public class NumberArray {
      */
     public static int[] clearArray() {
         return null;
+    }
+
+    public static boolean containsNumber(int[] array, int number) {
+        return Arrays.stream(array).anyMatch(value -> value == number);
     }
 }

@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
 
 import static org.junit.Assert.*;
 
@@ -28,6 +29,14 @@ public class ArrayManagerServiceTest {
     public void tearDown() {
         System.setIn(originalIn);
         System.setOut(originalOut);
+    }
+
+    private void setInput(String input) {
+        System.setIn(new ByteArrayInputStream(input.getBytes()));
+    }
+
+    private String normalizeOutput(String output) {
+        return output.replace("\r\n", "\n").trim();
     }
 
     @Test
@@ -50,6 +59,28 @@ public class ArrayManagerServiceTest {
     }
 
     @Test
+    public void initArray_invalidChoice_returnsNull() throws InvalidInputException {
+        String input = "3\n";
+        System.setIn(new ByteArrayInputStream(input.getBytes()));
+        ArrayManagerService service = new ArrayManagerService();
+        int[] array = service.initArray();
+        assertNull(array);
+    }
+
+    @Test
+    public void createArrayManually_invalidInput_retriesUntilValid() throws Exception {
+        String input = "invalid\n1, 2, 3\n";
+        System.setIn(new ByteArrayInputStream(input.getBytes()));
+        ArrayManagerService service = new ArrayManagerService();
+
+        Method method = ArrayManagerService.class.getDeclaredMethod("createArrayManually");
+        method.setAccessible(true);
+
+        int[] array = (int[]) method.invoke(service);
+        assertArrayEquals(new int[]{1, 2, 3}, array);
+    }
+
+    @Test
     public void testPrintArray() {
         int[] array = {1, 2, 3};
         ArrayManagerService service = new ArrayManagerService();
@@ -61,26 +92,28 @@ public class ArrayManagerServiceTest {
 
     @Test
     public void testAddNumberToArray_validInput() {
-        String input = "4\n";
-        System.setIn(new ByteArrayInputStream(input.getBytes()));
+        setInput("4\n");
         ArrayManagerService service = new ArrayManagerService();
         int[] array = {1, 2, 3};
         int[] newArray = service.addNumberToArray(array);
-        assertArrayEquals(new int[]{1, 2, 3, 4}, newArray);
-        String expectedOutput = "Enter a number to add: Number was added to the array.\n";
-        assertEquals(expectedOutput, outContent.toString().replace("\r\n", "\n"));
-    }
 
+
+        assertArrayEquals(new int[]{1, 2, 3, 4}, newArray);
+
+        String expectedOutput = "Enter a number to add: \nNumber was added to the array.";
+
+        String actualOutput = normalizeOutput(outContent.toString());
+
+        assertEquals(expectedOutput, actualOutput);
+    }
     @Test
-    public void testAddNumberToArray_invalidInput() {
+    public void addNumberToArray_invalidInput_retriesUntilValid() {
         String input = "invalid\n4\n";
         System.setIn(new ByteArrayInputStream(input.getBytes()));
         ArrayManagerService service = new ArrayManagerService();
         int[] array = {1, 2, 3};
         int[] newArray = service.addNumberToArray(array);
         assertArrayEquals(new int[]{1, 2, 3, 4}, newArray);
-        String expectedOutput = "Enter a number to add: Invalid input. Please enter a valid integer number.\nEnter a number to add: Number was added to the array.\n";
-        assertEquals(expectedOutput, outContent.toString().replace("\r\n", "\n"));
     }
 
     @Test
@@ -106,9 +139,13 @@ public class ArrayManagerServiceTest {
         ArrayManagerService service = new ArrayManagerService();
         int[] array = {1, 2, 3, 2};
         int[] newArray = service.removeNumberFromArray(array);
+
         assertArrayEquals(new int[]{1, 3, 2}, newArray);
-        String expectedOutput = "Enter a number to remove: Remove all occurrences? (yes/no): ";
-        assertTrue(outContent.toString().contains(expectedOutput));
+
+        String expectedOutput = "Enter a number to remove: \nRemove all occurrences? (yes/no): \nNumber 2 was removed from the array.";
+        String actualOutput = normalizeOutput(outContent.toString());
+
+        assertEquals(expectedOutput, actualOutput);
     }
 
     @Test
@@ -119,21 +156,29 @@ public class ArrayManagerServiceTest {
         int[] array = {1, 2, 3, 2};
         int[] newArray = service.removeNumberFromArray(array);
         assertArrayEquals(new int[]{1, 3}, newArray);
-        String expectedOutput = "Enter a number to remove: Remove all occurrences? (yes/no): ";
-        assertTrue(outContent.toString().contains(expectedOutput));
+        String expectedOutput = "Enter a number to remove: \nRemove all occurrences? (yes/no): ";
+        assertTrue(normalizeOutput(outContent.toString()).contains(expectedOutput));
+
+
     }
 
     @Test
-    public void testRemoveNumberFromArray_invalidNumberInput() {
-        String input = "invalid\n2\nno\n";
+    public void removeNumberFromArray_numberNotInArray_returnsOriginalArray() {
+        String input = "5\n";
         System.setIn(new ByteArrayInputStream(input.getBytes()));
+
         ArrayManagerService service = new ArrayManagerService();
-        int[] array = {1, 2, 3, 2};
+        int[] array = {1, 2, 3};
         int[] newArray = service.removeNumberFromArray(array);
-        assertArrayEquals(new int[]{1, 3, 2}, newArray);
-        String expectedOutput = "Enter a number to remove: Invalid input. Please enter a valid integer number.\nRemove all occurrences? (yes/no): ";
-        String actualOutput = outContent.toString().replace("\r\n", "\n").trim();
-        assertTrue(actualOutput.contains(expectedOutput.trim()));
+
+        assertArrayEquals(array, newArray);
+
+        String expectedOutput = "Enter a number to remove: \nNumber 5 does not exist in the array.";
+        String actualOutput = normalizeOutput(outContent.toString());
+
+
+
+        assertEquals(expectedOutput, actualOutput);
     }
 
     @Test
@@ -144,8 +189,8 @@ public class ArrayManagerServiceTest {
         int[] array = {1, 2, 3, 2};
         int[] newArray = service.removeNumberFromArray(array);
         assertArrayEquals(new int[]{1, 3, 2}, newArray);
-        String expectedOutput = "Enter a number to remove: Remove all occurrences? (yes/no): Invalid choice. Please enter 'yes' or 'no'. ";
-        String actualOutput = outContent.toString().replace("\r\n", "\n").trim();
+        String expectedOutput = "Enter a number to remove: \nRemove all occurrences? (yes/no): \nInvalid choice. Please enter 'yes' or 'no'. ";
+        String actualOutput = normalizeOutput(outContent.toString());
         assertTrue(actualOutput.contains(expectedOutput.trim()));
     }
 
